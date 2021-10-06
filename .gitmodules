@@ -1,0 +1,3 @@
+[submodule "TMInterfaceClientPython"]
+	path = TMInterfaceClientPython
+	url = https://github.com/donadigo/TMInterfaceClientPython.git
