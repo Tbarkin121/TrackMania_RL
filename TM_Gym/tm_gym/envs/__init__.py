@@ -1,0 +1,1 @@
+from tm_gym.envs.tm_env import TrackManiaEnv
