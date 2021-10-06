@@ -18,9 +18,9 @@ data_location = 'recorded_data\\all_data\\'
 tb_name = 'MeanDriver_MoreData_Dropout_128'
 load_path = 'model\\05.10.2021_19-10-29'
 
-load_model = True
-do_training = False
-max_episodes = 5000
+load_model = False
+do_training = True
+max_episodes = 1000
 batch_size = 2048
 n = 256
 noise_scale = 1.0
@@ -93,12 +93,13 @@ class MainClient(Client):
                 history = self.ActorModel.fit(
                     self.states_tensor,
                     self.actions_tensor,
-                    batch_size=1024,
+                    batch_size=batch_size,
                     epochs=max_episodes,
                     # We pass some validation for
                     # monitoring validation loss and metrics
                     # at the end of each epoch
                     validation_data=(self.states_tensor, self.actions_tensor),
+                    verbose=1
                 )
                 try:
                     os.makedirs(model_loc)
@@ -119,17 +120,23 @@ class MainClient(Client):
                                     # y_mean = self.ActorModel(x_batch_train)
                                     R2 = (y_batch_train-y_mean)**2
                                     # mean_loss = tf.reduce_mean(R2)
+                                    act_loss = self.loss_fun(y_batch_train, y_mean)
                                     var_loss = tf.reduce_mean((R2-y_std**2)**2)
                                     # loss = mean_loss + var_loss
                                     # loss = mean_loss
                                     
-                                    loss = self.loss_fun(y_batch_train, y_mean) + var_loss
+                                    loss = act_loss + var_loss
                                 grads = tape.gradient(loss, self.ActorModel.trainable_variables)
                                 self.ActorOptimizer.apply_gradients(zip(grads, self.ActorModel.trainable_variables))
 
                             tf.summary.scalar('loss', loss.numpy(), step=i)
+                            tf.summary.scalar('act_loss', act_loss.numpy(), step=i)
+                            tf.summary.scalar('var_loss', var_loss.numpy(), step=i)
+
                             t.set_description(f'Episode {i}')
-                            t.set_postfix(loss=loss.numpy())
+                            t.set_postfix(loss=loss.numpy(),
+                                          act_loss=act_loss.numpy(),
+                                          var_loss=var_loss.numpy())
                     try:
                         os.makedirs(model_loc)
                     except OSError as error:    
