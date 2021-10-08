@@ -3,3 +3,4 @@ ReadWriteMemory
 gym
 matplotlib
 psutil
+tensorflow

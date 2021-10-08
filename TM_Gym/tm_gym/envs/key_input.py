@@ -18,11 +18,15 @@ class KeyInput():
     def __init__(self):
         self.SendInput = ctypes.windll.user32.SendInput
 
-    def KeyStroke(self, hexKeyCode):
+    def KeyStroke(self, hexKeyCode, cap=False):
+        sleep(0.01)
+        if(cap):
+            self.PressKey(0x2A)
         self.PressKey(hexKeyCode)
-        sleep(0.1)
+        sleep(0.01)
         self.ReleaseKey(hexKeyCode)
-        sleep(0.1)
+        if(cap):
+            self.ReleaseKey(0x2A)
 
     def PressKey(self, hexKeyCode):
         extra = ctypes.c_ulong(0)

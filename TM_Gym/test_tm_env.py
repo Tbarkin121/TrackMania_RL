@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Oct  5 20:50:43 2021
-
+12
 @author: tylerbarkin
 """
 
@@ -14,22 +14,53 @@ from time import sleep
 
 #%%
 # env = []
-# for i in range (1):
-#     env.append(TrackManiaEnv())
+# for i in range (5):
+    # env.append(TrackManiaEnv())
 env = TrackManiaEnv()
 # env.reset()
 # env.step(0)
-# env.render()`
+# env.render()
 # env.close()
 
-#%%
-env.key_input.KeyStroke(0x41)
 #%%
 # env.render()
 # for e in env:
 #     e.close()
+for i in range(15):
+    env.client.frame_step(500)
+    obs = env.client.get_observation()
+    print('obs')
+    print(obs)
+    # if(i%2==0):
+    #     env.client.update_actions(right=False, 
+    #                               left=False, 
+    #                               gas=True, 
+    #                               brake=False)
+    # if(i%4==1):
+    #     env.client.update_actions(right=False, 
+    #                               left=True, 
+    #                               gas=True, 
+    #                               brake=False)
+    # if(i%4==3):
+    #     env.client.update_actions(right=True, 
+    #                               left=False, 
+    #                               gas=True, 
+    #                               brake=False)
+    # if(i%10==9):
+    #     env.client.reset_run()
+    if(i==5):
+        env.client.update_actions(right=False, 
+                                    left=False, 
+                                    gas=True, 
+                                    brake=False)
+    if(i==10):
+        env.client.reset_run()
+        
+    print(i)
+    sleep(1)
 env.close()
 
 #%%
 print(env.process_id)
 print(env.exe_subprocess.pid)
+
