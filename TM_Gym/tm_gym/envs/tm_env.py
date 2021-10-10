@@ -12,11 +12,18 @@ from tm_gym.envs.key_input import KeyInput
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import sys
-import tensorflow as tf
 
 class TrackManiaEnv(gym.Env):
+    metadata = {'render.modes': ['human']}
+
     def __init__(self):
         print('Init Track Mania')
+        self.action_space = gym.spaces.MultiBinary(4) # Right, Left, Gas, Brake
+        self.observation_space = gym.spaces.box.Box(low=-1,
+                                                    high=1, 
+                                                    shape=(10,),
+                                                    dtype=np.float32) 
+
         self.rwm = ReadWriteMemory()
         procces_ids_old =  self.rwm.enumerate_processes()
         sleep(0.1)
@@ -91,28 +98,35 @@ class TrackManiaEnv(gym.Env):
         self.key_input.KeyStroke(0x1C)              # Return
         sleep(0.1)
         self.key_input.KeyStroke(0x1C)              # Return
+        sleep(0.5)
 
-        self.server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
+    def connect_to_server(self, server_num=0):
+        self.server_name = f'TMInterface{server_num}'
         print(f'Connecting to {self.server_name}...')
         self.client = run_client(MainClient(), self.server_name)
-
+        sleep(2)
         
     def step(self, actions):
         print('Step')
+        sleep(0.005)
+        # Set Next Actions
+        # print(actions)
         self.client.update_actions(right=actions[0],
                                    left=actions[1],
                                    gas=actions[2],
                                    brake=actions[3])
+        # Execute Next Actions
+        self.client.frame_step(frame_skip=10, speed=1)
+
+        # Get New Observation
         obs = self.client.get_observation()
-        #What is the reward? 
-        #Lets say 1 per check point. 
+        
+        reward = obs[0]/100
+        # If we get a checkpoint, +1 !!! 
         if(self.client.check_ckpts()):
             reward = 1
-        else:
-            reward = 0
 
-        #How do we know when we are done?
-        #There is some sort of done signal
+        # If we finish the race, we are done. 
         self.done = self.client.check_done()
         return obs, reward, self.done, dict()
 
@@ -123,7 +137,9 @@ class TrackManiaEnv(gym.Env):
     def reset(self):
         print('Reset')
         self.client.reset_run()
+        sleep(0.1)
         obs = self.client.get_observation()
+        sleep(0.1)
         return np.array(obs, dtype=np.float32)
 
     def render(self, mode='human'):
@@ -143,6 +159,7 @@ class TrackManiaEnv(gym.Env):
 
 class MainClient(Client):
     def __init__(self) -> None:
+        self.start_state = None
         self.state = None
         super(MainClient, self).__init__()
         self.right = False
@@ -150,30 +167,43 @@ class MainClient(Client):
         self.gas = False
         self.brake = False
         self.obs = None
-        self.reset = False
         self.checkpoint_changed = False
         self.done = False
         self.iface = None
         self.frame_skip = 30
+        self.frame_count  = 0
+        self.running = False
+        self.reset = False
 
     def update_actions(self, right, left, gas, brake):
-        self.right=right
-        self.left=left
-        self.gas=gas
-        self.brake=brake
+        self.right=right>0.5
+        self.left=left>0.5
+        self.gas=gas>0.5
+        self.brake=brake>0.5
 
     def get_observation(self):
         # print('obs')
         # print(obs)
         return self.obs
 
-    def frame_step(self, frame_skip=30):
+    def frame_step(self, frame_skip=30, speed=1):
+        self.running = True
         if(self.iface != None):
-            self.iface.set_speed(1)
-        self.frame_skip = frame_skip
+            # sleep(0.05)
+            self.frame_skip = frame_skip
+            self.frame_count = 0
+            self.iface.set_speed(speed)
+            while(self.running):
+                pass
+        
 
     def reset_run(self):
+        self.save_observation()
         self.reset=True
+        self.done = False
+        self.frame_count = 0
+        self.iface.set_speed(1)
+        
 
     def check_ckpts(self):
         ckpt_change = False
@@ -187,42 +217,55 @@ class MainClient(Client):
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
+        self.iface = iface
+        self.iface.set_timeout(10000)
 
     def on_run_step(self, iface: TMInterface, _time: int):
-        if _time % self.frame_skip==0:
-            iface.set_speed(0)
-        if _time == 0:
-            self.iface = iface
-            self.state = iface.get_simulation_state()
-            print(self.state)
-
-        state = iface.get_simulation_state()
-        # ckpts = iface.get_checkpoint_state()
-        self.obs = tf.constant([#state.time/1000000, 
-                            #state.display_speed/1000, 
-                            state.position[0]/1000,
-                            state.position[1]/1000,
-                            state.position[2]/1000, 
-                            state.velocity[0]/1000,
-                            state.velocity[1]/1000, 
-                            state.velocity[2]/1000,
-                            state.yaw_pitch_roll[0],
-                            state.yaw_pitch_roll[1],
-                            state.yaw_pitch_roll[2]],
-                            shape=(1,9),
-                            dtype=tf.float32)
-
-        # Update Actions
-        iface.set_input_state(right=self.right, left=self.left, accelerate=self.gas, brake=self.brake)
-
-        # if _time == 500:
-        #     self.state = iface.get_simulation_state()
- 
         if(self.reset):
-            # iface.rewind_to_state(self.state)
-            iface.respawn()
+            self.iface.set_speed(0)
+            if(self.start_state != None):
+                self.iface.rewind_to_state(self.start_state)
+            else:
+                self.iface.respawn()
             self.reset=False
-            self.done = False
+            return
+
+        if _time == 0:
+            self.start_state = iface.get_simulation_state()
+            # print(self.start_state)
+        
+        if(self.frame_count == 0):
+            # Update Actions
+            iface.set_input_state(right=self.right, left=self.left, accelerate=self.gas, brake=self.brake)
+
+        if(self.frame_count == self.frame_skip):
+            iface.set_speed(0)
+            self.save_observation()
+            self.running = False
+        
+        if(self.state != None):
+            if _time>60000 or self.state.position[1]<20:
+                self.done = True
+        self.frame_count += 1
+            
+
+
+    def save_observation(self):
+        if(self.iface != None):
+            self.state = self.iface.get_simulation_state()
+            # ckpts = iface.get_checkpoint_state()
+            self.obs = np.array([#self.state.time/1000000, 
+                                    self.state.display_speed/1000, 
+                                    self.state.position[0]/1000,
+                                    self.state.position[1]/1000,
+                                    self.state.position[2]/1000, 
+                                    self.state.velocity[0]/1000,
+                                    self.state.velocity[1]/1000, 
+                                    self.state.velocity[2]/1000,
+                                    self.state.yaw_pitch_roll[0],
+                                    self.state.yaw_pitch_roll[1],
+                                    self.state.yaw_pitch_roll[2]],
+                                    dtype=np.float32)    
 
     def on_checkpoint_count_changed(self, iface, current: int, target: int):
         self.checkpoint_changed = True
