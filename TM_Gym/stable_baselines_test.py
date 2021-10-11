@@ -53,7 +53,7 @@ def main():
     if(start_fresh):
         # env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
         obs = env.reset()
-        model = PPO('MlpPolicy', 
+        model = PPO('MlpPolicy',
                     env, 
                     policy_kwargs = policy_kwargs, 
                     verbose=1, 

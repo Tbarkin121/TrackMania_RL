@@ -54,35 +54,49 @@ class TrackManiaEnv(gym.Env):
         self.load_map()
 
     def load_map(self):
-        print('Loading A01')
-        # Need to type in 'map A01-Race.Challenge.Gbx'
-        # Shift = 0x2A, not sure if capitalization will matter... probs...
-        # self.key_input.KeyStroke(0x41)
-        # self.key_input.KeyStroke(0x41)
+        # print('Loading A01')
+        # # Need to type in 'map A01-Race.Challenge.Gbx'
+        # # Shift = 0x2A, not sure if capitalization will matter... probs...
+        # # self.key_input.KeyStroke(0x41)
+        # # self.key_input.KeyStroke(0x41)
+        # self.key_input.KeyStroke(0x29)              # Grave
+        # self.key_input.KeyStroke(0x29)              # Grave
+        # self.key_input.KeyStroke(0x32)              # M
+        # self.key_input.KeyStroke(0x1E)              # A
+        # self.key_input.KeyStroke(0x19)              # P
+        # self.key_input.KeyStroke(0x39)              # Space
+        # self.key_input.KeyStroke(0x1E, cap=True)    # A
+        # self.key_input.KeyStroke(0x0B)              # 0
+        # self.key_input.KeyStroke(0x02)              # 1
+        # self.key_input.KeyStroke(0x0C)              # -
+        # self.key_input.KeyStroke(0x13, cap=True)    # R
+        # self.key_input.KeyStroke(0x1E)              # A
+        # self.key_input.KeyStroke(0x2E)              # C
+        # self.key_input.KeyStroke(0x12)              # E
+        # self.key_input.KeyStroke(0x34)              # .
+        # self.key_input.KeyStroke(0x2E, cap=True)    # C
+        # self.key_input.KeyStroke(0x23)              # H
+        # self.key_input.KeyStroke(0x1E)              # A
+        # self.key_input.KeyStroke(0x26)              # L
+        # self.key_input.KeyStroke(0x26)              # L
+        # self.key_input.KeyStroke(0x12)              # E
+        # self.key_input.KeyStroke(0x31)              # N
+        # self.key_input.KeyStroke(0x22)              # G
+        # self.key_input.KeyStroke(0x12)              # E
+        # self.key_input.KeyStroke(0x34)              # .
+        # self.key_input.KeyStroke(0x22, cap=True)    # G
+        # self.key_input.KeyStroke(0x30)              # B
+        # self.key_input.KeyStroke(0x2D)              # X
+        print('Loading TM1')
         self.key_input.KeyStroke(0x29)              # Grave
         self.key_input.KeyStroke(0x29)              # Grave
         self.key_input.KeyStroke(0x32)              # M
         self.key_input.KeyStroke(0x1E)              # A
         self.key_input.KeyStroke(0x19)              # P
         self.key_input.KeyStroke(0x39)              # Space
-        self.key_input.KeyStroke(0x1E, cap=True)    # A
-        self.key_input.KeyStroke(0x0B)              # 0
+        self.key_input.KeyStroke(0x14)              # T
+        self.key_input.KeyStroke(0x32)              # M
         self.key_input.KeyStroke(0x02)              # 1
-        self.key_input.KeyStroke(0x0C)              # -
-        self.key_input.KeyStroke(0x13, cap=True)    # R
-        self.key_input.KeyStroke(0x1E)              # A
-        self.key_input.KeyStroke(0x2E)              # C
-        self.key_input.KeyStroke(0x12)              # E
-        self.key_input.KeyStroke(0x34)              # .
-        self.key_input.KeyStroke(0x2E, cap=True)    # C
-        self.key_input.KeyStroke(0x23)              # H
-        self.key_input.KeyStroke(0x1E)              # A
-        self.key_input.KeyStroke(0x26)              # L
-        self.key_input.KeyStroke(0x26)              # L
-        self.key_input.KeyStroke(0x12)              # E
-        self.key_input.KeyStroke(0x31)              # N
-        self.key_input.KeyStroke(0x22)              # G
-        self.key_input.KeyStroke(0x12)              # E
         self.key_input.KeyStroke(0x34)              # .
         self.key_input.KeyStroke(0x22, cap=True)    # G
         self.key_input.KeyStroke(0x30)              # B
@@ -107,8 +121,8 @@ class TrackManiaEnv(gym.Env):
         sleep(2)
         
     def step(self, actions):
-        print('Step')
-        sleep(0.005)
+        # print('Step')
+        sleep(0.01)
         # Set Next Actions
         # print(actions)
         self.client.update_actions(right=actions[0],
@@ -176,29 +190,33 @@ class MainClient(Client):
         self.reset = False
 
     def update_actions(self, right, left, gas, brake):
+        # print('update actions')
         self.right=right>0.5
         self.left=left>0.5
         self.gas=gas>0.5
         self.brake=brake>0.5
 
     def get_observation(self):
+        # print('get_observation')
         # print('obs')
         # print(obs)
         return self.obs
 
     def frame_step(self, frame_skip=30, speed=1):
-        self.running = True
+        # print('frame_step enter')
         if(self.iface != None):
+            self.running = True
             # sleep(0.05)
             self.frame_skip = frame_skip
             self.frame_count = 0
             self.iface.set_speed(speed)
+            # print('frame_step Wait Loop')
             while(self.running):
                 pass
-        
+        # print('frame_step exit')
 
     def reset_run(self):
-        self.save_observation()
+        # print('reset_run')
         self.reset=True
         self.done = False
         self.frame_count = 0
@@ -206,6 +224,7 @@ class MainClient(Client):
         
 
     def check_ckpts(self):
+        # print('check_ckpts')
         ckpt_change = False
         if(self.checkpoint_changed):
             ckpt_change = True
@@ -213,6 +232,7 @@ class MainClient(Client):
         return ckpt_change
 
     def check_done(self):
+        # print('check_done')
         return self.done
 
     def on_registered(self, iface: TMInterface) -> None:
@@ -223,6 +243,7 @@ class MainClient(Client):
     def on_run_step(self, iface: TMInterface, _time: int):
         if(self.reset):
             self.iface.set_speed(0)
+            self.save_observation()
             if(self.start_state != None):
                 self.iface.rewind_to_state(self.start_state)
             else:
