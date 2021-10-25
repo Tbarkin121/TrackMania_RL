@@ -64,6 +64,7 @@ class TrackMania_State():
         for ptr in self.ptr_list:
             pointer_value = self.process.read(ptr)
             data = pointer_value.to_bytes(4, 'big')
+            print('uh4')
             value = struct.unpack('>f', data) #big endian
             self.state[idx] = value[0]
             idx += 1

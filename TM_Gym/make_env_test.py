@@ -19,6 +19,5 @@ for i in range(100):
     print(i)
     if(done or np.random.uniform()<0.05):
         env.reset()
-   
 
 env.close()

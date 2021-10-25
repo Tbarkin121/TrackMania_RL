@@ -122,7 +122,7 @@ class TrackManiaEnv(gym.Env):
         
     def step(self, actions):
         # print('Step')
-        sleep(0.01)
+        # sleep(0.01)
         # Set Next Actions
         # print(actions)
         self.client.update_actions(right=actions[0],
@@ -130,7 +130,7 @@ class TrackManiaEnv(gym.Env):
                                    gas=actions[2],
                                    brake=actions[3])
         # Execute Next Actions
-        self.client.frame_step(frame_skip=10, speed=1)
+        self.client.frame_step(frame_skip=10, speed=10)
 
         # Get New Observation
         obs = self.client.get_observation()
@@ -142,6 +142,7 @@ class TrackManiaEnv(gym.Env):
 
         # If we finish the race, we are done. 
         self.done = self.client.check_done()
+        sleep(0.05)
         return obs, reward, self.done, dict()
 
     def seed(self, seed=None):
@@ -151,9 +152,7 @@ class TrackManiaEnv(gym.Env):
     def reset(self):
         print('Reset')
         self.client.reset_run()
-        sleep(0.1)
         obs = self.client.get_observation()
-        sleep(0.1)
         return np.array(obs, dtype=np.float32)
 
     def render(self, mode='human'):
@@ -188,7 +187,8 @@ class MainClient(Client):
         self.frame_count  = 0
         self.running = False
         self.reset = False
-
+        self.race_time = 0
+        
     def update_actions(self, right, left, gas, brake):
         # print('update actions')
         self.right=right>0.5
@@ -220,7 +220,8 @@ class MainClient(Client):
         self.reset=True
         self.done = False
         self.frame_count = 0
-        self.iface.set_speed(1)
+        # self.iface.set_speed(1)
+        self.frame_step(frame_skip=1, speed=1)
         
 
     def check_ckpts(self):
@@ -241,8 +242,9 @@ class MainClient(Client):
         self.iface.set_timeout(10000)
 
     def on_run_step(self, iface: TMInterface, _time: int):
+        self.race_time = _time
         if(self.reset):
-            self.iface.set_speed(0)
+            # self.iface.set_speed(0)
             self.save_observation()
             if(self.start_state != None):
                 self.iface.rewind_to_state(self.start_state)
@@ -264,12 +266,13 @@ class MainClient(Client):
             self.save_observation()
             self.running = False
         
+        # if(self.state != None):
+        #     if _time>60000 or self.state.position[1]<20:
+        #         self.done = True
         if(self.state != None):
-            if _time>60000 or self.state.position[1]<20:
+            if _time>60000:
                 self.done = True
         self.frame_count += 1
-            
-
 
     def save_observation(self):
         if(self.iface != None):
